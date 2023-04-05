@@ -1,14 +1,20 @@
 #include "WiFi.h"
 #include "ESPAsyncWebServer.h"
+#include <WiFiClient.h>
+#include <WiFiAP.h>
 
 #define RXD2 16
 #define TXD2 17
 // Replace with your network credentials
-const char *ssid = "Hp";
-const char *password = "123456788";
-// Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
+// const char *ssid = "Hp";
+// const char *password = "123456788";
 
+const char *ssid = "hope";
+const char *password = "123456788";
+
+// Create AsyncWebServer object on port 80
+AsyncWebServer server_esp(80);
+WiFiServer server(8080);
 char myData[50] = "20,50,90,80";
 
 // int in;
@@ -301,35 +307,97 @@ void setup()
   // dht.begin();
 
   // Connect to Wi-Fi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(1000);
-    Serial.println("Connecting to WiFi..");
-  }
+  // WiFi.begin(ssid, password);
+  // while (WiFi.status() != WL_CONNECTED)
+  // {
+  //   delay(1000);
+  //   Serial.println("Connecting to WiFi..");
+  // }
+   Serial.println("Configuring access point...");
+
+  // You can remove the password parameter if you want the AP to be open.
+  WiFi.softAP(ssid, password);
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+  server.begin();
+
+  Serial.println("server_esp started");
 
   // Print ESP32 Local IP Address
   Serial.println(WiFi.localIP());
 
   // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+  server_esp.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send_P(200, "text/html", index_html, processor); });
-  server.on("/in", HTTP_GET, [](AsyncWebServerRequest *request)
+  server_esp.on("/in", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send_P(200, "text/plain", incount().c_str()); });
-  server.on("/out", HTTP_GET, [](AsyncWebServerRequest *request)
+  server_esp.on("/out", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send_P(200, "text/plain", outcount().c_str()); });
-  server.on("/net", HTTP_GET, [](AsyncWebServerRequest *request)
+  server_esp.on("/net", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send_P(200, "text/plain", netcount().c_str()); });
-  server.on("/total", HTTP_GET, [](AsyncWebServerRequest *request)
+  server_esp.on("/total", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send_P(200, "text/plain", totalcount().c_str()); });
 
-  // Start server
-  server.begin();
+  // Start server_esp
+  server_esp.begin();
 }
 
 // in -out, in+out
 void loop()
 {
+
+  WiFiClient client = server.available();   // listen for incoming clients
+
+  if (client) {                             // if you get a client,
+    Serial.println("New Client.");           // print a message out the serial port
+    String currentLine = "";                // make a String to hold incoming data from the client
+    while (client.connected()) {            // loop while the client's connected
+      if (client.available()) {             // if there's bytes to read from the client,
+        char c = client.read();             // read a byte, then
+        Serial.write(c);                    // print it out the serial monitor
+        if (c == '\n') {                    // if the byte is a newline character
+
+          // if the current line is blank, you got two newline characters in a row.
+          // that's the end of the client HTTP request, so send a response:
+          if (currentLine.length() == 0) {
+            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
+            // and a content-type so the client knows what's coming, then a blank line:
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println();
+
+            // the content of the HTTP response follows the header:
+            client.print("Click <a href=\"/H\">here</a> to turn ON the LED.<br>");
+            client.print("Click <a href=\"/L\">here</a> to turn OFF the LED.<br>");
+
+            // The HTTP response ends with another blank line:
+            client.println();
+            // break out of the while loop:
+            break;
+          } else {    // if you got a newline, then clear currentLine:
+            currentLine = "";
+          }
+        } else if (c != '\r') {  // if you got anything else but a carriage return character,
+          currentLine += c;      // add it to the end of the currentLine
+        }
+
+        // Check to see if the client request was "GET /H" or "GET /L":
+        // if (currentLine.endsWith("GET /H")) {
+        //   digitalWrite(LED_BUILTIN, HIGH);               // GET /H turns the LED on
+        // }
+        // if (currentLine.endsWith("GET /L")) {
+        //   digitalWrite(LED_BUILTIN, LOW);                // GET /L turns the LED off
+        // }
+      }
+    }
+    // close the connection:
+    client.stop();
+    Serial.println("Client Disconnected.");
+  }
+
+
+  //....................................
 
   if (Serial2.available() > 0)
   {
