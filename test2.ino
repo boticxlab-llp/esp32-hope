@@ -318,6 +318,14 @@ void setup()
   // You can remove the password parameter if you want the AP to be open.
   WiFi.softAP(ssid, password);
   IPAddress myIP = WiFi.softAPIP();
+
+  // Set your Static IP address
+IPAddress local_IP(192, 168, 0, 100);
+// Set your Gateway IP address
+IPAddress gateway(192, 168, 0, 1);
+
+IPAddress subnet(255, 255, 0, 0);
+
   Serial.print("AP IP address: ");
   Serial.println(myIP);
   server.begin();
