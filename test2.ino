@@ -2,6 +2,7 @@
 #include "ESPAsyncWebServer.h"
 #include <WiFiClient.h>
 #include <WiFiAP.h>
+#include <ESPmDNS.h>
 
 #define RXD2 16
 #define TXD2 17
@@ -15,7 +16,7 @@ const char *password = "123456788";
 // Create AsyncWebServer object on port 80
 AsyncWebServer server_esp(80);
 WiFiServer server(8080);
-char myData[50] = "20,50,90,80";
+char myData[50] = "0,0,0,0";
 
 // int in;
 // int out;
@@ -114,8 +115,8 @@ const char index_html[] PROGMEM = R"rawliteral(
     }
     
     body {  
-    background-image: url('https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?cs=srgb&dl=pexels-johannes-plenio-1103970.jpg&fm=jpg');
-    background-repeat: no-repeat;
+    background-color: powderblue;
+    
       background-size: cover;
   
   overflow: hidden; 
@@ -129,7 +130,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         width: 25%;   
         /*spacing between each box */  
         padding: 4px;
-        margin-left:70px;
+      margin-left:70px;
           
     }   
           
@@ -169,7 +170,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         <div class="block">
         
             <!-- Add visitor icon -->  
-        <p><i class="material-icons" style="font-size:90px;">accessibility</i></p>   
+           
         <h1>&nbsp&nbsp&nbsp&nbsp InCount &nbsp&nbsp&nbsp&nbsp</h1>   
         </div>
         <div class="block2">  
@@ -182,8 +183,8 @@ const char index_html[] PROGMEM = R"rawliteral(
         <div class="block"> 
         
                 <!-- Add Visitor icon -->  
-        <p><i class="material-icons" style="font-size:90px;">accessibility</i></p>   
-        <h1>&nbsp&nbsp&nbsp&nbsp Outcount &nbsp&nbsp&nbsp&nbsp</h1>   
+           
+        <h1>&nbsp&nbsp&nbsp&nbsp OutCount &nbsp&nbsp&nbsp&nbsp</h1>   
         </div>
         <div class="block2">  
             <h1 style="color:black"> %OUT% </h1>   
@@ -195,7 +196,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         <div class="block">
         
             <!-- Add Visitor icon -->  
-        <p><i class="material-icons" style="font-size:90px;">accessibility</i></p>   
+           
         <h1>&nbsp&nbsp&nbsp&nbsp NetCount &nbsp&nbsp&nbsp&nbsp</h1>    
         </div>
         <div class="block2">  
@@ -208,7 +209,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         <div class="block">
         
             <!-- Add Visitor icon -->  
-        <p><i class="material-icons" style="font-size:90px;color:white;">accessibility</i></p>   
+        
         <h1>&nbsp&nbsp TotalCount &nbsp&nbsp</h1>   
         </div>
         <div class="block2">  
@@ -218,7 +219,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     </div>   
     </div>
 </center>  
-</body>   
+</body>
  
 <script>
 setInterval(function ( ) {
@@ -230,7 +231,7 @@ setInterval(function ( ) {
   };
   xhttp.open("GET", "/in", true);
   xhttp.send();
-}, 10000 ) ;
+}, 1000 ) ;
 
 setInterval(function ( ) {
   var xhttp = new XMLHttpRequest();
@@ -241,7 +242,7 @@ setInterval(function ( ) {
   };
   xhttp.open("GET", "/out", true);
   xhttp.send();
-}, 10000 ) ;
+}, 1000 ) ;
 setInterval(function ( ) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
@@ -251,7 +252,7 @@ setInterval(function ( ) {
   };
   xhttp.open("GET", "/net", true);
   xhttp.send();
-}, 10000 ) ;
+}, 1000 ) ;
 
 setInterval(function ( ) {
   var xhttp = new XMLHttpRequest();
@@ -262,7 +263,7 @@ setInterval(function ( ) {
   };
   xhttp.open("GET", "/total", true);
   xhttp.send();
-}, 10000 ) ;
+}, 1000 ) ;
 </script>
 </html>)rawliteral";
 
@@ -335,6 +336,18 @@ IPAddress subnet(255, 255, 0, 0);
   // Print ESP32 Local IP Address
   Serial.println(WiFi.localIP());
 
+      // Set up mDNS responder:
+    // - first argument is the domain name, in this example
+    //   the fully-qualified domain name is "esp32.local"
+    // - second argument is the IP address to advertise
+    //   we send our IP address on the WiFi network
+    if (!MDNS.begin("hope")) {
+        Serial.println("Error setting up MDNS responder!");
+        while(1) {
+            delay(1000);
+        }
+    }
+    Serial.println("mDNS responder started");
   // Route for root / web page
   server_esp.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send_P(200, "text/html", index_html, processor); });
